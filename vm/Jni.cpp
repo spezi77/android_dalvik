@@ -22,6 +22,7 @@
 #include "Misc.h"
 #include "ScopedPthreadMutexLock.h"
 #include "UniquePtr.h"
+#include "hprof/Hprof.h"
 
 #include <stdlib.h>
 #include <stdarg.h>
@@ -499,6 +500,7 @@ static jobject addGlobalReference(Object* obj) {
     LOGVV("GREF add %p  (%s.%s)", obj,
         dvmGetCurrentJNIMethod()->clazz->descriptor,
         dvmGetCurrentJNIMethod()->name);
+
 
     return jobj;
 }
