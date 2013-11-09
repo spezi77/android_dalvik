@@ -35,7 +35,6 @@ dex_src_files := \
 
 dex_include_files := \
 	dalvik \
-	$(JNI_H_INCLUDE) \
 	external/zlib \
 	external/safe-iop/include
 
@@ -58,6 +57,7 @@ LOCAL_CFLAGS += -fno-inline-functions
 endif
 LOCAL_SRC_FILES := $(dex_src_files)
 LOCAL_C_INCLUDES += $(dex_include_files)
+LOCAL_STATIC_LIBRARIES := liblog
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := libdex
 include $(BUILD_STATIC_LIBRARY)
@@ -73,6 +73,7 @@ endif # !SDK_ONLY
 include $(CLEAR_VARS)
 LOCAL_SRC_FILES := $(dex_src_files) sha1.cpp
 LOCAL_C_INCLUDES += $(dex_include_files)
+LOCAL_STATIC_LIBRARIES := liblog
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := libdex
 include $(BUILD_HOST_STATIC_LIBRARY)
