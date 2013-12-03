@@ -467,18 +467,22 @@ static bool addNewHeap(HeapSource *hs)
         heap.base = base;
         heap.limit = heap.base + heap.maximumSize;
         heap.brk = heap.base + HEAP_MIN_FREE;
+        if (!remapNewHeap(hs, &heap)) {
+          return false;
+        }
         heap.msp = createMspace(base, HEAP_MIN_FREE, hs->maximumSize - overhead);
-    } else {
+    }
+    else {
         size_t morecoreStart = MAX(SYSTEM_PAGE_SIZE, gDvm.heapStartingSize);
         heap.maximumSize = hs->growthLimit - overhead;
         heap.concurrentStartBytes = hs->minFree - concurrentStart;
         heap.base = base;
         heap.limit = heap.base + heap.maximumSize;
         heap.brk = heap.base + morecoreStart;
+        if (!remapNewHeap(hs, &heap)) {
+          return false;
+        }
         heap.msp = createMspace(base, morecoreStart, hs->minFree);
-    }
-    if (!remapNewHeap(hs, &heap)) {
-      return false;
     }
     if (heap.msp == NULL) {
         return false;
