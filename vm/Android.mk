@@ -55,15 +55,9 @@ include $(LOCAL_PATH)/ReconfigureDvm.mk
 
 # Overwrite default settings
 LOCAL_MODULE := libdvm
-<<<<<<< HEAD
-LOCAL_CFLAGS += $(target_smp_flag) -fno-strict-aliasing
-ifeq ($(TARGET_ARCH_LOWMEM),true)
-    LOCAL_CFLAGS += -DDALVIK_LOWMEM -fno-strict-aliasing
-=======
 LOCAL_CFLAGS += $(target_smp_flag)
 ifeq ($(TARGET_ARCH_LOWMEM),true)
   LOCAL_CFLAGS += -DDALVIK_LOWMEM
->>>>>>> cm/cm-11.0
 endif
 
 # Define WITH_ADDRESS_SANITIZER to build an ASan-instrumented version of the
