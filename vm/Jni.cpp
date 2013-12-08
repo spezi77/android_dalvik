@@ -22,6 +22,7 @@
 #include "Misc.h"
 #include "ScopedPthreadMutexLock.h"
 #include "UniquePtr.h"
+#include "hprof/Hprof.h"
 
 #include <stdlib.h>
 #include <stdarg.h>

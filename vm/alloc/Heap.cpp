@@ -40,15 +40,6 @@
 
 #ifdef HAVE_ANDROID_OS
 #include "cutils/properties.h"
-
-static int debugalloc()
-{
-    char value[PROPERTY_VALUE_MAX];
-    property_get("dalvik.vm.debug.alloc", value, "0");
-    return atoi(value);
-}
-#else
-inline static int debugalloc() { return 1; }
 #endif
 
 static const GcSpec kGcForMallocSpec = {

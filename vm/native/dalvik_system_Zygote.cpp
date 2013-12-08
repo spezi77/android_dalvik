@@ -18,6 +18,7 @@
  * dalvik.system.Zygote
  */
 #include "Dalvik.h"
+#include "Thread.h"
 #include "native/InternalNativePriv.h"
 
 #include <selinux/android.h>
@@ -288,6 +289,28 @@ static int mountEmulatedStorage(uid_t uid, u4 mountMode) {
             return -1;
         }
 
+        // Unfortunately bind mounts from outside ANDROID_STORAGE retain the
+        // recursive-shared property (kernel bug?).  This means any additional bind
+        // mounts (e.g., /storage/emulated/0/Android/obb) will also appear, shared
+        // in all namespaces, at their respective source paths (e.g.,
+        // /mnt/shell/emulated/0/Android/obb), leading to hundreds of
+        // /proc/mounts-visible bind mounts.  As a workaround, mark
+        // EMULATED_STORAGE_SOURCE (e.g., /mnt/shell/emulated) also a slave so that
+        // subsequent bind mounts are confined to this namespace.  Note,
+        // EMULATED_STORAGE_SOURCE must already serve as a mountpoint, which it
+        // should for the "sdcard" fuse volume.
+        if (mount(NULL, source, NULL, (MS_SLAVE | MS_REC), NULL) == -1) {
+            SLOGW("Failed to mount %s as MS_SLAVE: %s", source, strerror(errno));
+
+            // Fallback: Mark rootfs as slave.  All mounts under "/" will be hidden
+            // from other apps and users.  This shouldn't happen unless the sdcard
+            // service is broken.
+            if (mount("rootfs", "/", NULL, (MS_SLAVE | MS_REC), NULL) == -1) {
+                SLOGE("Failed to mount rootfs as MS_SLAVE: %s", strerror(errno));
+                return -1;
+            }
+        }
+
         if (mountMode == MOUNT_EXTERNAL_MULTIUSER_ALL) {
             // Mount entire external storage tree for all users
             if (mount(source, target, NULL, MS_BIND, NULL) == -1) {
@@ -432,23 +455,22 @@ static void enableDebugFeatures(u4 debugFlags)
 static int setCapabilities(int64_t permitted, int64_t effective)
 {
 #ifdef HAVE_ANDROID_OS
-    struct __user_cap_header_struct capheader;
-    struct __user_cap_data_struct capdata[_LINUX_CAPABILITY_U32S_3];
-
+    __user_cap_header_struct capheader;
     memset(&capheader, 0, sizeof(capheader));
-    memset(&capdata, 0, sizeof(capdata));
-
-    capheader.version = _LINUX_CAPABILITY_VERSION_3;
+    capheader.version = _LINUX_CAPABILITY_VERSION;
     capheader.pid = 0;
 
-    capdata[0].effective = effective & 0xffffffffULL;
-    capdata[0].permitted = permitted & 0xffffffffULL;
-    capdata[1].effective = (uint64_t)effective >> 32;
-    capdata[1].permitted = (uint64_t)permitted >> 32;
+    __user_cap_data_struct capdata[2];
+    memset(&capdata, 0, sizeof(capdata));
+    capdata[0].effective = effective;
+    capdata[1].effective = effective >> 32;
+    capdata[0].permitted = permitted;
+    capdata[1].permitted = permitted >> 32;
 
-    ALOGV("CAPSET perm=%llx eff=%llx", permitted, effective);
-    if (capset(&capheader, capdata) != 0)
+    if (capset(&capheader, &capdata[0]) == -1) {
+        ALOGE("capset(perm=%llx, eff=%llx) failed: %s", permitted, effective, strerror(errno));
         return errno;
+    }
 #endif /*HAVE_ANDROID_OS*/
 
     return 0;
@@ -713,6 +735,13 @@ static pid_t forkAndSpecializeCommon(const u4* args, bool isSystemServer)
         if (err < 0) {
             ALOGE("cannot set SELinux context: %s\n", strerror(errno));
             dvmAbort();
+        }
+
+        // Set the comm to a nicer name.
+        if (isSystemServer && niceName == NULL) {
+            dvmSetThreadName("system_server");
+        } else {
+            dvmSetThreadName(niceName);
         }
         // These free(3) calls are safe because we know we're only ever forking
         // a single-threaded process, so we know no other thread held the heap
