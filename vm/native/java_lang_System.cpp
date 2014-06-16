@@ -175,6 +175,10 @@ static void memmove_words(void* dest, const void* src, size_t n) {
     }
 }
 
+#if defined(HAVE_HALFWORD_ATOMIC_MEMMOVE)
+#define move16 memmove
+#define move32 memmove_words
+#else
 #define move16 memmove_words
 #define move32 memmove_words
 
