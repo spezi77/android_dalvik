@@ -181,6 +181,7 @@ static void memmove_words(void* dest, const void* src, size_t n) {
 #else
 #define move16 memmove_words
 #define move32 memmove_words
+#endif
 
 /*
  * public static void arraycopy(Object src, int srcPos, Object dest,
